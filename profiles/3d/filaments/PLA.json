@@ -8,6 +8,7 @@
   ],
   "nozzle_c": 210,
   "first_layer_nozzle_c": 215,
+  "standby_nozzle_c": 160,
   "bed_c": 60,
   "first_layer_bed_c": 65,
   "fan_percent": 100,
@@ -18,4 +19,3 @@
   "brim_mm": 3,
   "notes": "General PLA/PLA+ baseline; Silk PLA should usually use lower speed."
 }
-

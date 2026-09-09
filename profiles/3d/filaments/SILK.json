@@ -9,6 +9,7 @@
   ],
   "nozzle_c": 220,
   "first_layer_nozzle_c": 225,
+  "standby_nozzle_c": 160,
   "bed_c": 60,
   "first_layer_bed_c": 65,
   "fan_percent": 80,
@@ -19,4 +20,3 @@
   "brim_mm": 4,
   "notes": "Silk PLA usually prefers lower speed and smoother outer walls."
 }
-

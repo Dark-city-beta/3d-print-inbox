@@ -33,24 +33,32 @@ Draft mode убран.
 
 ## Calibration and Presentation
 
-По умолчанию каждый подготовленный G-code включает стартовую автоподготовку принтера:
+По умолчанию каждый подготовленный G-code включает ручную проверку сопла перед mesh и стартовую автоподготовку принтера:
 
-- нагрев стола и сопла;
+- нагрев стола и сопла только до standby-температуры филамента;
 - G28 homing;
+- парковку головы у переднего края;
+- PAUSE с просьбой убрать соплю/каплю пластика с сопла и стола;
+- продолжение только после RESUME;
 - Z_TILT_ADJUST, если он доступен в профиле;
 - BED_MESH_CALIBRATE, если он доступен в профиле;
-- purge line перед печатью.
+- полный нагрев сопла и purge line уже после калибровки стола.
 
 После завершения печати helper встраивает финальный блок: выключает нагрев/обдув, уводит Z вниз на presentation height, паркует XY и отключает X/Y/E моторы, чтобы проще снять подложку с моделью.
 
 Defaults:
 
     PRINT_DEFAULT_CALIBRATION=auto
+    PRINT_DEFAULT_NOZZLE_CHECK=manual
     PRINT_DEFAULT_PRESENT_Z=235
 
 Отключать автокалибровку стоит только явно:
 
     bin/print-helper prepare model.stl --height 180 --filament PETG --mode beautiful-strong --calibration off
+
+Отключать ручную проверку сопла/стола перед mesh стоит только явно и осознанно:
+
+    bin/print-helper prepare model.stl --height 180 --filament PETG --mode beautiful-strong --nozzle-check off
 
 ## Basic Flow
 
@@ -62,6 +70,7 @@ bin/print-helper filaments
 bin/print-helper modes
 bin/print-helper inspect model.stl --height 180
 bin/print-helper prepare model.stl --height 180 --filament PETG --mode beautiful-strong
+bin/print-helper prepare model.stl --height 180 --filament PETG --mode beautiful-strong --nozzle-check off
 bin/print-helper prepare model.stl --height 180 --filament PETG --mode beautiful-strong --present-z 245
 ```
 
@@ -112,5 +121,5 @@ Use `skill/3d-print-inbox/SKILL.md` as the main Hermes routing skill. Older comp
 - STL/OBJ/3MF inspection works in Python.
 - Moonraker status/upload/start/pause/resume/cancel works through API.
 - Slicing uses the first available CLI slicer: prusa-slicer, OrcaSlicer, or slic3r.
-- Generated G-code includes auto calibration by default and post-print bed-down presentation.
+- Generated G-code includes manual nozzle/bed clean PAUSE before mesh, auto calibration by default, and post-print bed-down presentation.
 - Actual boolean mesh cutting/connectors are planned but not yet implemented; oversized models currently produce a split/connectors plan.

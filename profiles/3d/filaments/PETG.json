@@ -9,6 +9,7 @@
   ],
   "nozzle_c": 240,
   "first_layer_nozzle_c": 245,
+  "standby_nozzle_c": 170,
   "bed_c": 80,
   "first_layer_bed_c": 85,
   "fan_percent": 35,
@@ -19,4 +20,3 @@
   "brim_mm": 5,
   "notes": "Default PETG baseline for Flying Bear S1; tune by brand/spool after test prints."
 }
-

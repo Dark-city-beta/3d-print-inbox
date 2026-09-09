@@ -13,9 +13,10 @@ The project is built around a Flying Bear S1 running Klipper + Moonraker + Fluid
 - Selects filament profiles for PETG, PLA, ABS, TPU, and Silk PLA.
 - Slices through CLI slicers on Linux, preferring PrusaSlicer/Orca-compatible flows.
 - Uploads, starts, pauses, resumes, cancels, and monitors prints through Moonraker.
-- Adds pre-print calibration G-code by default: heat, `G28`, `Z_TILT_ADJUST`, `BED_MESH_CALIBRATE`, and purge line.
+- Adds pre-mesh startup protection: heat bed, warm nozzle to standby, `G28`, manual nozzle/bed clean pause, then `Z_TILT_ADJUST`, `BED_MESH_CALIBRATE`, full nozzle heat, and post-mesh purge.
 - Adds post-print presentation G-code: heaters/fan off, Z moves down to the presentation height, XY parks, X/Y/E motors disable.
 - Blocks accidental `upload --start` for G-code without `AI START` / `AI END` markers unless explicitly overridden.
+- Keeps the nozzle at filament standby temperature before mesh to reduce ooze during probing.
 
 ## Layout
 
@@ -66,6 +67,7 @@ bin/print-helper modes
 bin/print-helper inspect /path/to/model.stl
 bin/print-helper prepare /path/to/model.stl --height 180 --filament PETG --mode beautiful-strong
 bin/print-helper prepare /path/to/model.stl --height 180 --filament PETG --mode beautiful-strong --present-z 245
+bin/print-helper prepare /path/to/model.stl --height 180 --filament PETG --mode beautiful-strong --nozzle-check off
 bin/print-helper upload /path/to/file.gcode
 bin/print-helper upload /path/to/file.gcode --start
 bin/print-helper monitor --once

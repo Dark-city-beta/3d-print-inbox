@@ -6,6 +6,7 @@
   ],
   "nozzle_c": 225,
   "first_layer_nozzle_c": 230,
+  "standby_nozzle_c": 170,
   "bed_c": 50,
   "first_layer_bed_c": 55,
   "fan_percent": 45,
@@ -16,4 +17,3 @@
   "brim_mm": 4,
   "notes": "TPU baseline: slow print, low acceleration, avoid aggressive retraction."
 }
-

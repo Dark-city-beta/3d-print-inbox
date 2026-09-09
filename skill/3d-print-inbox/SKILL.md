@@ -52,11 +52,13 @@ Observed from Moonraker/Klipper on 2026-09-09:
 
 Before a real print, check live status. If the printer is not ready, report the blocker instead of starting.
 
-Default generated G-code performs pre-print calibration and post-print presentation:
+Default generated G-code performs a manual nozzle check, pre-print calibration, and post-print presentation:
 
-- Start: heat bed/nozzle, home with G28, run Z_TILT_ADJUST when available, run BED_MESH_CALIBRATE, then purge a line.
+- Start: heat the bed and warm the nozzle only to filament standby temperature, home with G28, park at the front, then PAUSE before bed mesh so the operator can remove nozzle ooze or any blob on the plate.
+- After RESUME: run Z_TILT_ADJUST when available, run BED_MESH_CALIBRATE, heat to first-layer temperature, then purge a line after mesh calibration.
 - End: stop heaters/fan, move Z down to the presentation height, park XY, and disable X/Y/E motors so the operator can remove the plate/model more easily.
 - Use --calibration off only when the operator explicitly asks to skip auto calibration for a known-good repeat print.
+- Use --nozzle-check off only when the operator explicitly accepts the risk of bed mesh or first-layer contamination from ooze.
 - Use --present-z N only when the operator asks for a different final bed-down height.
 
 ## User Contract
@@ -68,6 +70,7 @@ When the operator drops or names a model, do the smallest useful interrogation:
 - Offer only two modes: beautiful-strong and fast. Do not offer draft mode.
 - Ask whether the job should be prepared only, uploaded, or uploaded and started. Start printing only when the operator explicitly asks to start/print now.
 - Keep pre-print calibration enabled by default because the printer may have drifted. Mention if the operator asks to skip it.
+- Keep the manual nozzle/bed clean check enabled by default. The print will pause before BED_MESH_CALIBRATE and wait for RESUME.
 - Use automatic support judgment by default, then state whether supports/brim are expected and why.
 
 If information is missing but a reasonable preview is still useful, inspect the model and create a prepare-only plan with assumptions clearly written in the job folder.
@@ -91,6 +94,7 @@ If information is missing but a reasonable preview is still useful, inspect the 
     bin/print-helper prepare /path/to/model.stl --length 1500 --filament PETG --mode beautiful-strong
     bin/print-helper prepare /path/to/model.stl --scale 0.5 --filament PLA --mode fast
     bin/print-helper prepare /path/to/model.stl --height 180 --filament PETG --mode beautiful-strong --calibration off
+    bin/print-helper prepare /path/to/model.stl --height 180 --filament PETG --mode beautiful-strong --nozzle-check off
     bin/print-helper prepare /path/to/model.stl --height 180 --filament PETG --mode beautiful-strong --present-z 245
 
 4. Upload/start only when requested:
@@ -139,4 +143,4 @@ If the final dimensions exceed the Flying Bear S1 profile:
 
 ## Done Criteria
 
-A prepared job is complete when the job folder has print_plan.md and metadata.json, the scale/dimensions/filament/mode are clear, and either a G-code file exists or the plan explains why slicing was not run. For sliced jobs, metadata.json must record calibration_summary, present_z_mm, start_gcode, and end_gcode, and the generated G-code should contain AI START / AI END markers. A started job is complete only after Moonraker accepts the file and monitor --once confirms the printer is active or queued.
+A prepared job is complete when the job folder has print_plan.md and metadata.json, the scale/dimensions/filament/mode are clear, and either a G-code file exists or the plan explains why slicing was not run. For sliced jobs, metadata.json must record nozzle_check_summary, calibration_summary, present_z_mm, start_gcode, and end_gcode, and the generated G-code should contain AI START / AI NOZZLE CHECK / AI END markers. A started job is complete only after Moonraker accepts the file and monitor --once confirms the printer is active, paused for nozzle cleaning, or queued.

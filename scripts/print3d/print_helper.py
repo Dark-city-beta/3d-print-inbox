@@ -16,6 +16,8 @@ DEFAULT_PRINTER = os.environ.get('PRINT_DEFAULT_PRINTER', 'flyingbear_s1')
 DEFAULT_MODE = os.environ.get('PRINT_DEFAULT_MODE', 'beautiful-strong')
 DEFAULT_FILAMENT = os.environ.get('PRINT_DEFAULT_FILAMENT', 'PETG')
 DEFAULT_CALIBRATION = os.environ.get('PRINT_DEFAULT_CALIBRATION', 'auto')
+DEFAULT_NOZZLE_CHECK = os.environ.get('PRINT_DEFAULT_NOZZLE_CHECK', 'manual')
+DEFAULT_NOZZLE_STANDBY = os.environ.get('PRINT_DEFAULT_NOZZLE_STANDBY_C')
 DEFAULT_PRESENT_Z = os.environ.get('PRINT_DEFAULT_PRESENT_Z')
 
 MODES = {
@@ -216,23 +218,59 @@ def has_printer_feature(printer, needle):
     needle = needle.lower()
     return any(needle in str(v).lower() for v in printer.get('klipper_features', []))
 
-def build_start_gcode(printer, filament, calibration):
+def nozzle_standby_temp(filament):
+    if DEFAULT_NOZZLE_STANDBY:
+        return float(DEFAULT_NOZZLE_STANDBY)
+    return float(filament.get('standby_nozzle_c') or max(150, min(180, float(filament['first_layer_nozzle_c']) - 50)))
+
+def format_temp(value):
+    return '%g' % float(value)
+
+def build_nozzle_check_gcode(printer, standby_temp, nozzle_check):
+    if nozzle_check == 'off':
+        return []
+    start = printer.get('print_start', {})
+    x = float(start.get('nozzle_check_x_mm', 10))
+    y = float(start.get('nozzle_check_y_mm', 10))
+    z = float(start.get('nozzle_check_z_mm', 20))
+    pause_command = start.get('nozzle_check_pause_command', 'PAUSE')
+    lines = [
+        '; AI NOZZLE CHECK: clean ooze before bed mesh',
+        'G1 Z%.2f F3000' % z,
+        'G1 X%.2f Y%.2f F6000' % (x, y),
+        'M109 S%s' % format_temp(standby_temp),
+        'M117 Clean nozzle and bed, then RESUME',
+        'RESPOND TYPE=command MSG="Clean nozzle ooze and bed blob, then press RESUME"',
+    ]
+    if pause_command:
+        lines.append(str(pause_command))
+    lines += [
+        'G90',
+        'M82',
+        '; AI NOZZLE CHECK END',
+    ]
+    return lines
+
+def build_start_gcode(printer, filament, calibration, nozzle_check):
+    standby_temp = nozzle_standby_temp(filament)
+    bed_temp = filament.get('first_layer_bed_c', filament['bed_c'])
     lines = [
         '; AI START: 3d-print-inbox',
-        'M140 S%s' % filament['bed_c'],
-        'M104 S%s' % filament['first_layer_nozzle_c'],
-        'M190 S%s' % filament['bed_c'],
+        'M140 S%s' % format_temp(bed_temp),
+        'M104 S%s' % format_temp(standby_temp),
+        'M190 S%s' % format_temp(bed_temp),
         'G90',
         'M82',
         'G28',
     ]
+    lines += build_nozzle_check_gcode(printer, standby_temp, nozzle_check)
     if calibration != 'off':
         if has_printer_feature(printer, 'z_tilt'):
             lines += ['Z_TILT_ADJUST', 'G28 Z']
         if has_printer_feature(printer, 'bed_mesh'):
             lines += ['BED_MESH_CALIBRATE']
     lines += [
-        'M109 S%s' % filament['first_layer_nozzle_c'],
+        'M109 S%s' % format_temp(filament['first_layer_nozzle_c']),
         'G92 E0',
         'G1 Z5 F3000',
         'G1 X5 Y10 F6000',
@@ -283,6 +321,11 @@ def calibration_summary(printer, calibration):
         steps.append('BED_MESH_CALIBRATE')
     return 'auto (' + ', '.join(steps) + ')'
 
+def nozzle_check_summary(nozzle_check, filament):
+    if nozzle_check == 'off':
+        return 'off'
+    return 'manual pause before mesh at %s C standby' % format_temp(nozzle_standby_temp(filament))
+
 def run_slicer(model, gcode, scale, printer, filament, mode, supports, start_gcode, end_gcode):
     slicer = find_slicer()
     if not slicer: return dict(ok=False, ran=False, reason='No CLI slicer found')
@@ -326,12 +369,12 @@ def prepare(a):
     job = create_job_dir(model); copied = job / model.name; shutil.copy2(model, copied)
     gcode = job / ('%s_%s_%s.gcode' % (model.stem, a.mode, filament['id']))
     present_z = present_z_for(printer, dims, a.present_z)
-    start_gcode = build_start_gcode(printer, filament, a.calibration)
+    start_gcode = build_start_gcode(printer, filament, a.calibration, a.nozzle_check)
     end_gcode = build_end_gcode(printer, dims, present_z)
     sres = dict(ok=False, ran=False, reason='split_required') if split.get('required') else (dict(ok=False, ran=False, reason='skipped') if a.no_slice else run_slicer(copied, gcode, scale, printer, filament, mode, supports, start_gcode, end_gcode))
-    meta = dict(job_dir=str(job), source_model=str(model), copied_model=str(copied), mesh=info, scale=scale, scale_reason=why, scaled_dimensions_mm=dims, printer=printer, filament=filament, mode=a.mode, settings=mode, supports=supports, calibration=a.calibration, calibration_summary=calibration_summary(printer, a.calibration), present_z_mm=present_z, start_gcode=start_gcode, end_gcode=end_gcode, split=split, slicer_result=sres, moonraker_url=MOONRAKER_URL)
+    meta = dict(job_dir=str(job), source_model=str(model), copied_model=str(copied), mesh=info, scale=scale, scale_reason=why, scaled_dimensions_mm=dims, printer=printer, filament=filament, mode=a.mode, settings=mode, supports=supports, calibration=a.calibration, calibration_summary=calibration_summary(printer, a.calibration), nozzle_check=a.nozzle_check, nozzle_check_summary=nozzle_check_summary(a.nozzle_check, filament), present_z_mm=present_z, start_gcode=start_gcode, end_gcode=end_gcode, split=split, slicer_result=sres, moonraker_url=MOONRAKER_URL)
     (job/'metadata.json').write_text(json.dumps(meta, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-    plan = ['# Print Plan', '', '- Model: %s' % copied, '- Printer: %s' % printer['name'], '- Mode: %s (%s)' % (a.mode, mode['label']), '- Filament: %s' % filament['id'], '- Original XYZ: %.2f x %.2f x %.2f mm' % tuple(info['dimensions_mm']), '- Final XYZ: %.2f x %.2f x %.2f mm' % dims, '- Scale: %.5g (%s)' % (scale, why), '- Supports: %s' % ('yes' if supports else 'no'), '- Brim: %s mm' % filament.get('brim_mm',0), '- Nozzle/bed: %s/%s C' % (filament['nozzle_c'], filament['bed_c']), '- Walls: %s, infill: %s%% %s, layer: %s mm' % (mode['walls'], mode['infill'], mode['pattern'], mode['layer']), '- Pre-print calibration: %s' % calibration_summary(printer, a.calibration), '- End presentation: bed down / Z %.2f mm' % present_z, '']
+    plan = ['# Print Plan', '', '- Model: %s' % copied, '- Printer: %s' % printer['name'], '- Mode: %s (%s)' % (a.mode, mode['label']), '- Filament: %s' % filament['id'], '- Original XYZ: %.2f x %.2f x %.2f mm' % tuple(info['dimensions_mm']), '- Final XYZ: %.2f x %.2f x %.2f mm' % dims, '- Scale: %.5g (%s)' % (scale, why), '- Supports: %s' % ('yes' if supports else 'no'), '- Brim: %s mm' % filament.get('brim_mm',0), '- Nozzle/bed: %s/%s C' % (filament['nozzle_c'], filament['bed_c']), '- Walls: %s, infill: %s%% %s, layer: %s mm' % (mode['walls'], mode['infill'], mode['pattern'], mode['layer']), '- Nozzle check: %s' % nozzle_check_summary(a.nozzle_check, filament), '- Pre-print calibration: %s' % calibration_summary(printer, a.calibration), '- End presentation: bed down / Z %.2f mm' % present_z, '']
     if split.get('required'): plan += ['## Split required', '- Axis: %s' % split['axis'], '- Segments: %s' % split['segments'], '- Connectors: %s' % ', '.join(split['connectors']), '']
     plan += ['## Slicer', json.dumps(sres, ensure_ascii=False, indent=2)]
     (job/'print_plan.md').write_text('\n'.join(plan) + '\n', encoding='utf-8')
@@ -397,7 +440,7 @@ def parser():
     for name in ['inspect','prepare']:
         q = sub.add_parser(name); q.add_argument('model'); q.add_argument('--printer', default=DEFAULT_PRINTER); q.add_argument('--height', type=float); q.add_argument('--width', type=float); q.add_argument('--length', type=float); q.add_argument('--scale', type=float)
         if name == 'prepare':
-            q.add_argument('--filament', default=DEFAULT_FILAMENT); q.add_argument('--mode', choices=sorted(MODES), default=DEFAULT_MODE); q.add_argument('--supports', choices=['auto','on','off'], default='auto'); q.add_argument('--calibration', choices=['auto','off'], default=DEFAULT_CALIBRATION); q.add_argument('--present-z', type=float); q.add_argument('--no-slice', action='store_true'); q.add_argument('--upload', action='store_true'); q.add_argument('--start', action='store_true'); q.set_defaults(func=prepare)
+            q.add_argument('--filament', default=DEFAULT_FILAMENT); q.add_argument('--mode', choices=sorted(MODES), default=DEFAULT_MODE); q.add_argument('--supports', choices=['auto','on','off'], default='auto'); q.add_argument('--calibration', choices=['auto','off'], default=DEFAULT_CALIBRATION); q.add_argument('--nozzle-check', choices=['manual','off'], default=DEFAULT_NOZZLE_CHECK); q.add_argument('--present-z', type=float); q.add_argument('--no-slice', action='store_true'); q.add_argument('--upload', action='store_true'); q.add_argument('--start', action='store_true'); q.set_defaults(func=prepare)
         else: q.set_defaults(func=inspect_cmd)
     q = sub.add_parser('upload'); q.add_argument('gcode'); q.add_argument('--start', action='store_true'); q.add_argument('--allow-untagged-start', action='store_true'); q.set_defaults(func=upload)
     q = sub.add_parser('start'); q.add_argument('filename'); q.add_argument('--allow-direct-start', action='store_true'); q.set_defaults(func=start)

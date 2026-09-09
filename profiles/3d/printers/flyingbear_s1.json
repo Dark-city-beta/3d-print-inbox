@@ -48,6 +48,11 @@
   ],
   "print_start": {
     "default_calibration": "auto",
+    "default_nozzle_check": "manual",
+    "nozzle_check_x_mm": 10,
+    "nozzle_check_y_mm": 10,
+    "nozzle_check_z_mm": 20,
+    "nozzle_check_pause_command": "PAUSE",
     "home": true,
     "z_tilt_adjust": true,
     "bed_mesh_calibrate": true,

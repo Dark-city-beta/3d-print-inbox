@@ -6,6 +6,7 @@
   ],
   "nozzle_c": 250,
   "first_layer_nozzle_c": 255,
+  "standby_nozzle_c": 180,
   "bed_c": 100,
   "first_layer_bed_c": 105,
   "fan_percent": 15,
@@ -16,4 +17,3 @@
   "brim_mm": 8,
   "notes": "ABS/ASA wants stable warm air and low cooling; expect brim and warping checks."
 }
-
