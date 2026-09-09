@@ -251,7 +251,7 @@ def build_nozzle_check_gcode(printer, standby_temp, nozzle_check):
     ]
     return lines
 
-def build_start_gcode(printer, filament, calibration, nozzle_check):
+def build_start_gcode_lines(printer, filament, calibration, nozzle_check):
     standby_temp = nozzle_standby_temp(filament)
     bed_temp = filament.get('first_layer_bed_c', filament['bed_c'])
     lines = [
@@ -282,7 +282,7 @@ def build_start_gcode(printer, filament, calibration, nozzle_check):
         'G1 Z2 F3000',
         '; AI START END',
     ]
-    return '\n'.join(lines)
+    return lines
 
 def present_z_for(printer, dims, override=None):
     axis = printer.get('firmware_axis_mm', {})
@@ -292,11 +292,11 @@ def present_z_for(printer, dims, override=None):
     desired = float(override if override is not None else DEFAULT_PRESENT_Z if DEFAULT_PRESENT_Z else profile_present if profile_present is not None else z_max - 25)
     return round(min(z_max - clearance, max(float(dims[2]) + 10, desired)), 2)
 
-def build_end_gcode(printer, dims, present_z):
+def build_end_gcode_lines(printer, dims, present_z):
     park = printer.get('print_end', {})
     park_x = float(park.get('park_x_mm', 10))
     park_y = float(park.get('park_y_mm', printer.get('build_volume_mm', {}).get('y', 220)))
-    return '\n'.join([
+    return [
         '; AI END: 3d-print-inbox',
         'M400',
         'G92 E0',
@@ -309,7 +309,10 @@ def build_end_gcode(printer, dims, present_z):
         'G1 X%.2f Y%.2f F6000' % (park_x, park_y),
         'M84 X Y E',
         '; AI END END',
-    ])
+    ]
+
+def gcode_text(lines):
+    return '\n'.join(lines)
 
 def calibration_summary(printer, calibration):
     if calibration == 'off':
@@ -369,9 +372,9 @@ def prepare(a):
     job = create_job_dir(model); copied = job / model.name; shutil.copy2(model, copied)
     gcode = job / ('%s_%s_%s.gcode' % (model.stem, a.mode, filament['id']))
     present_z = present_z_for(printer, dims, a.present_z)
-    start_gcode = build_start_gcode(printer, filament, a.calibration, a.nozzle_check)
-    end_gcode = build_end_gcode(printer, dims, present_z)
-    sres = dict(ok=False, ran=False, reason='split_required') if split.get('required') else (dict(ok=False, ran=False, reason='skipped') if a.no_slice else run_slicer(copied, gcode, scale, printer, filament, mode, supports, start_gcode, end_gcode))
+    start_gcode = build_start_gcode_lines(printer, filament, a.calibration, a.nozzle_check)
+    end_gcode = build_end_gcode_lines(printer, dims, present_z)
+    sres = dict(ok=False, ran=False, reason='split_required') if split.get('required') else (dict(ok=False, ran=False, reason='skipped') if a.no_slice else run_slicer(copied, gcode, scale, printer, filament, mode, supports, gcode_text(start_gcode), gcode_text(end_gcode)))
     meta = dict(job_dir=str(job), source_model=str(model), copied_model=str(copied), mesh=info, scale=scale, scale_reason=why, scaled_dimensions_mm=dims, printer=printer, filament=filament, mode=a.mode, settings=mode, supports=supports, calibration=a.calibration, calibration_summary=calibration_summary(printer, a.calibration), nozzle_check=a.nozzle_check, nozzle_check_summary=nozzle_check_summary(a.nozzle_check, filament), present_z_mm=present_z, start_gcode=start_gcode, end_gcode=end_gcode, split=split, slicer_result=sres, moonraker_url=MOONRAKER_URL)
     (job/'metadata.json').write_text(json.dumps(meta, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     plan = ['# Print Plan', '', '- Model: %s' % copied, '- Printer: %s' % printer['name'], '- Mode: %s (%s)' % (a.mode, mode['label']), '- Filament: %s' % filament['id'], '- Original XYZ: %.2f x %.2f x %.2f mm' % tuple(info['dimensions_mm']), '- Final XYZ: %.2f x %.2f x %.2f mm' % dims, '- Scale: %.5g (%s)' % (scale, why), '- Supports: %s' % ('yes' if supports else 'no'), '- Brim: %s mm' % filament.get('brim_mm',0), '- Nozzle/bed: %s/%s C' % (filament['nozzle_c'], filament['bed_c']), '- Walls: %s, infill: %s%% %s, layer: %s mm' % (mode['walls'], mode['infill'], mode['pattern'], mode['layer']), '- Nozzle check: %s' % nozzle_check_summary(a.nozzle_check, filament), '- Pre-print calibration: %s' % calibration_summary(printer, a.calibration), '- End presentation: bed down / Z %.2f mm' % present_z, '']
