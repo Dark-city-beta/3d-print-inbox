@@ -1,0 +1,21 @@
+{
+  "id": "PLA",
+  "aliases": [
+    "PLA",
+    "PLA+",
+    "SILK-PLA",
+    "ПЛА"
+  ],
+  "nozzle_c": 210,
+  "first_layer_nozzle_c": 215,
+  "bed_c": 60,
+  "first_layer_bed_c": 65,
+  "fan_percent": 100,
+  "min_fan_percent": 70,
+  "max_fan_percent": 100,
+  "flow_ratio": 1,
+  "pressure_advance_hint": 0.045,
+  "brim_mm": 3,
+  "notes": "General PLA/PLA+ baseline; Silk PLA should usually use lower speed."
+}
+

@@ -1,0 +1,19 @@
+{
+  "id": "TPU",
+  "aliases": [
+    "TPU",
+    "FLEX"
+  ],
+  "nozzle_c": 225,
+  "first_layer_nozzle_c": 230,
+  "bed_c": 50,
+  "first_layer_bed_c": 55,
+  "fan_percent": 45,
+  "min_fan_percent": 20,
+  "max_fan_percent": 70,
+  "flow_ratio": 1.03,
+  "pressure_advance_hint": 0.02,
+  "brim_mm": 4,
+  "notes": "TPU baseline: slow print, low acceleration, avoid aggressive retraction."
+}
+

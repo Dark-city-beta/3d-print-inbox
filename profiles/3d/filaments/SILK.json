@@ -1,0 +1,22 @@
+{
+  "id": "SILK",
+  "aliases": [
+    "SILK",
+    "SILK PLA",
+    "PLA SILK",
+    "ШЁЛК",
+    "ШЕЛК"
+  ],
+  "nozzle_c": 220,
+  "first_layer_nozzle_c": 225,
+  "bed_c": 60,
+  "first_layer_bed_c": 65,
+  "fan_percent": 80,
+  "min_fan_percent": 60,
+  "max_fan_percent": 100,
+  "flow_ratio": 1.02,
+  "pressure_advance_hint": 0.035,
+  "brim_mm": 4,
+  "notes": "Silk PLA usually prefers lower speed and smoother outer walls."
+}
+

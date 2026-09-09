@@ -1,0 +1,68 @@
+{
+  "id": "flyingbear_s1",
+  "name": "Flying Bear S1",
+  "source": "Example Flying Bear S1 profile; verify against live Moonraker config before production printing",
+  "ui": {
+    "type": "Fluidd",
+    "url": "http://YOUR_PRINTER_IP/"
+  },
+  "moonraker": {
+    "url": "http://YOUR_PRINTER_IP:7125",
+    "api_version": "1.4.0"
+  },
+  "mechanics": {
+    "kinematics": "corexy",
+    "max_velocity_mm_s": 300,
+    "max_accel_mm_s2": 10000
+  },
+  "build_volume_mm": {
+    "x": 220,
+    "y": 220,
+    "z": 250
+  },
+  "firmware_axis_mm": {
+    "x_min": -5.5,
+    "x_max": 222,
+    "y_min": -5,
+    "y_max": 225,
+    "z_min": -6,
+    "z_max": 260
+  },
+  "nozzle": {
+    "diameter_mm": 0.4,
+    "max_temp_c": 310
+  },
+  "filament": {
+    "diameter_mm": 1.75
+  },
+  "bed": {
+    "max_temp_c": 120
+  },
+  "klipper_features": [
+    "bed_mesh",
+    "z_tilt",
+    "KAMP adaptive purge/mesh macros",
+    "PAUSE/RESUME/CANCEL_PRINT",
+    "input_shaper mzv x=57.8 y=57.6",
+    "pressure_advance 0.058"
+  ],
+  "print_start": {
+    "default_calibration": "auto",
+    "home": true,
+    "z_tilt_adjust": true,
+    "bed_mesh_calibrate": true,
+    "purge_line": true
+  },
+  "print_end": {
+    "present_z_mm": 235,
+    "park_x_mm": 10,
+    "park_y_mm": 220,
+    "motors_off": "X Y E"
+  },
+  "conservative_limits": {
+    "max_part_x_mm": 210,
+    "max_part_y_mm": 210,
+    "max_part_z_mm": 245,
+    "clearance_mm": 5
+  }
+}

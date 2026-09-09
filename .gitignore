@@ -1,0 +1,13 @@
+configs/print_factory.env
+inbox/
+jobs/
+*.gcode
+*.stl
+*.3mf
+*.obj
+__pycache__/
+*.pyc
+.env
+.venv/
+artifacts/
+*.tar.gz

@@ -1,0 +1,22 @@
+{
+  "id": "PETG",
+  "aliases": [
+    "PETG",
+    "PETG+",
+    "PETG-HF",
+    "ПЕТГ",
+    "petj"
+  ],
+  "nozzle_c": 240,
+  "first_layer_nozzle_c": 245,
+  "bed_c": 80,
+  "first_layer_bed_c": 85,
+  "fan_percent": 35,
+  "min_fan_percent": 20,
+  "max_fan_percent": 55,
+  "flow_ratio": 0.98,
+  "pressure_advance_hint": 0.058,
+  "brim_mm": 5,
+  "notes": "Default PETG baseline for Flying Bear S1; tune by brand/spool after test prints."
+}
+
