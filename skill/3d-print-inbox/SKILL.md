@@ -1,6 +1,6 @@
 ---
 name: 3d-print-inbox
-description: "Use when an operator asks Hermes to prepare, tune, slice, upload, monitor, or run 3D prints from a model inbox for a Flying Bear S1 printer. Prefer this Linux pipeline over controlling OrcaSlicer through Windows."
+description: "Use when DARK asks Hermes to prepare, tune, slice, upload, monitor, or run 3D prints from the Freeman model inbox for the Flying Bear S1 printer. Prefer this Linux pipeline over controlling OrcaSlicer through Windows."
 version: 1.0.0
 author: Hermes Agent
 license: MIT
@@ -13,37 +13,40 @@ metadata:
 
 # 3D Print Inbox
 
-This is the main top-level 3D printing skill. Use it when a model is placed in the inbox, when a print needs to be prepared for a Flying Bear S1, or when Hermes should manage slicing and Moonraker/Fluidd control from Linux instead of driving OrcaSlicer on a Windows workstation.
+This is DARK's main and only top-level 3D printing skill. Use it when a model is placed in the inbox, when a print needs to be prepared for the home Flying Bear S1, or when Hermes should manage slicing and Moonraker/Fluidd control from Freeman/Linux instead of driving OrcaSlicer on the Windows workstation.
 
 Default operating chain:
 
-    model in PRINT_INBOX -> bin/print-helper inspect/prepare -> PrusaSlicer/OrcaSlicer CLI -> Moonraker -> Flying Bear S1
+    model in /mnt/city17/3d-print-inbox -> bin/print-helper inspect/prepare -> PrusaSlicer/OrcaSlicer CLI -> Moonraker at 192.168.31.128 -> Flying Bear S1
 
 ## Known Locations
 
-    project root: repository root, or PRINT_HELPER_ROOT
-    print CLI: bin/print-helper
-    inbox: PRINT_INBOX
-    jobs: PRINT_JOBS
+    project root: /mnt/city17/Free project/My computer Helper AI
+    print CLI: /mnt/city17/Free project/My computer Helper AI/bin/print-helper
+    inbox: /mnt/city17/3d-print-inbox
+    jobs: /mnt/city17/3d-print-jobs
     printer UI: Fluidd
-    Moonraker API: PRINT_MOONRAKER_URL
+    Moonraker API: http://192.168.31.128:7125
     printer profile: profiles/3d/printers/flyingbear_s1.json
     filament profiles: profiles/3d/filaments/*.json
     operator notes: docs/3D_PRINT_FACTORY.md
+    project repo: https://github.com/Dark-city-beta/3d-print-inbox
 
 Run commands from the project root unless an absolute path is clearer:
 
-    cd /path/to/3d-print-inbox
+    cd "/mnt/city17/Free project/My computer Helper AI"
     bin/print-helper status
 
 ## Printer Facts
 
 Observed from Moonraker/Klipper on 2026-09-09:
 
-- Printer: Flying Bear S1 through Fluidd/Moonraker.
+- Printer: Flying Bear S1 through Fluidd/Moonraker at 192.168.31.128:7125.
 - Firmware stack: Klipper ready, Moonraker API available.
 - Motion: CoreXY.
-- Axis maximums: X 222 mm, Y 225 mm, Z 260 mm from live config; use the JSON profile as the source of truth.
+- Safe/calibrated slicer area from the JSON profile: X 3..213 mm, Y 3..213 mm (210 x 210 mm).
+- Nominal bed is 220 x 220 x 250 mm, but this is not the safe printable/slicer area.
+- Firmware travel observed: X -5.5..222, Y -5..225, Z -6..260; travel range is not print area. Use `build_volume_mm` + `bed_origin_mm` as the source of truth for slicing.
 - Nozzle: 0.4 mm; filament: 1.75 mm.
 - Hotend max: 310 C; bed max: 120 C.
 - Pressure advance: 0.058.
@@ -56,20 +59,20 @@ Default generated G-code performs a manual nozzle check, pre-print calibration, 
 
 - Start: heat the bed and warm the nozzle only to filament standby temperature, home with G28, park at the front, then PAUSE before bed mesh so the operator can remove nozzle ooze or any blob on the plate.
 - After RESUME: run Z_TILT_ADJUST when available, run BED_MESH_CALIBRATE, heat to first-layer temperature, then purge a line after mesh calibration.
-- End: stop heaters/fan, move Z down to the presentation height, park XY, and disable X/Y/E motors so the operator can remove the plate/model more easily.
-- Use --calibration off only when the operator explicitly asks to skip auto calibration for a known-good repeat print.
+- End: stop heaters/fan, move Z down to the presentation height, park XY inside the safe X/Y 3..213 profile, and disable X/Y/E motors so DARK can remove the plate/model more easily.
+- Use --calibration off only when DARK explicitly asks to skip auto calibration for a known-good repeat print.
 - Use --nozzle-check off only when the operator explicitly accepts the risk of bed mesh or first-layer contamination from ooze.
-- Use --present-z N only when the operator asks for a different final bed-down height.
+- Use --present-z N only when DARK asks for a different final bed-down height.
 
 ## User Contract
 
-When the operator drops or names a model, do the smallest useful interrogation:
+When DARK drops or names a model, do the smallest useful interrogation:
 
-- Confirm the target size using one constraint if possible: height, width, length, exact scale, or original size. Preserve aspect ratio unless the operator asks otherwise.
+- Confirm the target size using one constraint if possible: height, width, length, exact scale, or original size. Preserve aspect ratio unless DARK asks otherwise.
 - Ask what filament is currently loaded. If the brand/subtype is known, use it; otherwise start from the material profile.
 - Offer only two modes: beautiful-strong and fast. Do not offer draft mode.
-- Ask whether the job should be prepared only, uploaded, or uploaded and started. Start printing only when the operator explicitly asks to start/print now.
-- Keep pre-print calibration enabled by default because the printer may have drifted. Mention if the operator asks to skip it.
+- Ask whether the job should be prepared only, uploaded, or uploaded and started. Start printing only when DARK explicitly asks to start/print now.
+- Keep pre-print calibration enabled by default because the printer may have drifted. Mention if DARK asks to skip it.
 - Keep the manual nozzle/bed clean check enabled by default. The print will pause before BED_MESH_CALIBRATE and wait for RESUME.
 - Use automatic support judgment by default, then state whether supports/brim are expected and why.
 
@@ -86,16 +89,16 @@ If information is missing but a reasonable preview is still useful, inspect the 
 
 2. Inspect the model:
 
-    bin/print-helper inspect /path/to/model.stl
+    bin/print-helper inspect /mnt/city17/3d-print-inbox/model.stl
 
 3. Prepare a job:
 
-    bin/print-helper prepare /path/to/model.stl --height 180 --filament PETG --mode beautiful-strong
-    bin/print-helper prepare /path/to/model.stl --length 1500 --filament PETG --mode beautiful-strong
-    bin/print-helper prepare /path/to/model.stl --scale 0.5 --filament PLA --mode fast
-    bin/print-helper prepare /path/to/model.stl --height 180 --filament PETG --mode beautiful-strong --calibration off
-    bin/print-helper prepare /path/to/model.stl --height 180 --filament PETG --mode beautiful-strong --nozzle-check off
-    bin/print-helper prepare /path/to/model.stl --height 180 --filament PETG --mode beautiful-strong --present-z 245
+    bin/print-helper prepare /mnt/city17/3d-print-inbox/model.stl --height 180 --filament PETG --mode beautiful-strong
+    bin/print-helper prepare /mnt/city17/3d-print-inbox/model.stl --length 1500 --filament PETG --mode beautiful-strong
+    bin/print-helper prepare /mnt/city17/3d-print-inbox/model.stl --scale 0.5 --filament PLA --mode fast
+    bin/print-helper prepare /mnt/city17/3d-print-inbox/model.stl --height 180 --filament PETG --mode beautiful-strong --calibration off
+    bin/print-helper prepare /mnt/city17/3d-print-inbox/model.stl --height 180 --filament PETG --mode beautiful-strong --nozzle-check off
+    bin/print-helper prepare /mnt/city17/3d-print-inbox/model.stl --height 180 --filament PETG --mode beautiful-strong --present-z 245
 
 4. Upload/start only when requested:
 
@@ -110,7 +113,7 @@ When starting a job, prefer upload --start on a G-code file generated by this he
 
 The helper writes each prepared job under:
 
-    PRINT_JOBS/YYYYMMDD-HHMMSS_model/
+    /mnt/city17/3d-print-jobs/YYYYMMDD-HHMMSS_model/
       original/copy of model
       print_plan.md
       metadata.json
@@ -118,12 +121,12 @@ The helper writes each prepared job under:
 
 ## Print Modes
 
-Use only these modes unless the operator explicitly changes the local profiles:
+Use only these modes unless DARK explicitly changes the local profiles:
 
 - beautiful-strong: default. Better surfaces and stronger walls for final parts, props, brackets, connectors, and visible objects.
 - fast: faster useful print when appearance/detail is less important. This is not draft mode.
 
-For filament tuning, prefer existing profiles for PETG, PLA, ABS, TPU, and SILK. If the operator names a specific vendor/color/subtype and the local profile is too generic, look up current material guidance and keep temperatures inside the printer limits.
+For filament tuning, prefer existing profiles for PETG, PLA, ABS, TPU, and SILK. If DARK names a specific vendor/color/subtype and the local profile is too generic, look up current material guidance and keep temperatures inside the printer limits.
 
 ## Large Models
 

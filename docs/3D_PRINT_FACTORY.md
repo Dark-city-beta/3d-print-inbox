@@ -1,25 +1,27 @@
 # 3D Print Factory
 
-Цель: готовить модели для Flying Bear S1 на Linux без управления OrcaSlicer через Windows UI.
+Цель: готовить модели для Flying Bear S1 на Freeman/Linux без управления OrcaSlicer через Windows UI.
 
 ## Printer
 
 - Model: Flying Bear S1
-- Address: set in PRINT_MOONRAKER_URL
-- Web UI: Fluidd at http://YOUR_PRINTER_IP/
-- Moonraker API: http://YOUR_PRINTER_IP:7125
+- Address: 192.168.31.128
+- Web UI: Fluidd at http://192.168.31.128/
+- Moonraker API: http://192.168.31.128:7125
 - Klipper state when checked: ready
 - Kinematics: CoreXY
-- Safe print volume: 220 x 220 x 250 mm
-- Firmware axis max observed: X 222, Y 225, Z 260
+- Safe/calibrated print volume: 210 x 210 x 250 mm
+- Printable XY range used by slicer/calibration: X 3..213 mm, Y 3..213 mm (210 x 210 mm)
+- Nominal bed: 220 x 220 x 250 mm; this is not the safe slicer area
+- Firmware axis travel observed: X -5.5..222, Y -5..225, Z -6..260; travel range is not print area
 - Nozzle: 0.4 mm
 - Filament: 1.75 mm
 
 ## Folders
 
 ```text
-PRINT_INBOX      # сюда оператор кладет модели
-PRINT_JOBS       # сюда helper пишет job-папки
+/mnt/city17/3d-print-inbox      # сюда DARK кладет модели
+/mnt/city17/3d-print-jobs       # сюда helper пишет job-папки
 ```
 
 ## Modes
@@ -44,7 +46,7 @@ Draft mode убран.
 - BED_MESH_CALIBRATE, если он доступен в профиле;
 - полный нагрев сопла и purge line уже после калибровки стола.
 
-После завершения печати helper встраивает финальный блок: выключает нагрев/обдув, уводит Z вниз на presentation height, паркует XY и отключает X/Y/E моторы, чтобы проще снять подложку с моделью.
+После завершения печати helper встраивает финальный блок: выключает нагрев/обдув, уводит Z вниз на presentation height, паркует XY внутри безопасной области X/Y 3..213 и отключает X/Y/E моторы, чтобы проще снять подложку с моделью.
 
 Defaults:
 
@@ -63,7 +65,7 @@ Defaults:
 ## Basic Flow
 
 ```bash
-cd /path/to/3d-print-inbox
+cd '/mnt/city17/Free project/My computer Helper AI'
 bin/print-helper init-dirs
 bin/print-helper status
 bin/print-helper filaments
@@ -85,7 +87,7 @@ bin/print-helper prepare sword.stl --length 1500 --filament PETG --mode beautifu
 Каждый prepare создает job-папку:
 
 ```text
-PRINT_JOBS/YYYYMMDD-HHMMSS_model/
+/mnt/city17/3d-print-jobs/YYYYMMDD-HHMMSS_model/
   original model copy
   metadata.json
   print_plan.md
@@ -114,7 +116,7 @@ Main Hermes routing skill:
 /mnt/storage2/hermes-home/skills/productivity/3d-print-inbox/SKILL.md
 ```
 
-Use `skill/3d-print-inbox/SKILL.md` as the main Hermes routing skill. Older companion-skill fragments should stay out of active routing so 3D print requests resolve to one clear skill.
+Legacy companion skills from the first install were retired from Hermes' top-level skill root so routing stays unambiguous. If needed, their archived copies live under `artifacts/runtime/retired-3d-companion-skills-*`.
 
 ## Current MVP Limits
 

@@ -8,10 +8,10 @@ try:
 except Exception:
     requests = None
 
-ROOT = Path(os.environ.get('PRINT_HELPER_ROOT', Path(__file__).resolve().parents[2]))
-INBOX = Path(os.environ.get('PRINT_INBOX', ROOT / 'inbox'))
-JOBS = Path(os.environ.get('PRINT_JOBS', ROOT / 'jobs'))
-MOONRAKER_URL = os.environ.get('PRINT_MOONRAKER_URL', 'http://127.0.0.1:7125').rstrip('/')
+ROOT = Path(os.environ.get('PRINT_HELPER_ROOT', '/mnt/city17/Free project/My computer Helper AI'))
+INBOX = Path(os.environ.get('PRINT_INBOX', '/mnt/city17/3d-print-inbox'))
+JOBS = Path(os.environ.get('PRINT_JOBS', '/mnt/city17/3d-print-jobs'))
+MOONRAKER_URL = os.environ.get('PRINT_MOONRAKER_URL', 'http://192.168.31.128:7125').rstrip('/')
 DEFAULT_PRINTER = os.environ.get('PRINT_DEFAULT_PRINTER', 'flyingbear_s1')
 DEFAULT_MODE = os.environ.get('PRINT_DEFAULT_MODE', 'beautiful-strong')
 DEFAULT_FILAMENT = os.environ.get('PRINT_DEFAULT_FILAMENT', 'PETG')
@@ -200,8 +200,17 @@ def find_slicer():
         if p: return p
     return None
 
-def slicer_center_args(slicer, bed):
-    center = '%g,%g' % (bed['x']/2, bed['y']/2)
+def printable_xy_bounds(printer):
+    bed = printer['build_volume_mm']
+    origin = printer.get('bed_origin_mm', {'x': 0, 'y': 0})
+    return (float(origin['x']), float(origin['y']), float(origin['x']) + float(bed['x']), float(origin['y']) + float(bed['y']))
+
+def clamp(value, low, high):
+    return min(high, max(low, float(value)))
+
+def slicer_center_args(slicer, bed, origin=None):
+    origin = origin or {'x': 0, 'y': 0}
+    center = '%g,%g' % (origin['x'] + bed['x']/2, origin['y'] + bed['y']/2)
     name = Path(slicer).name.lower()
     if 'prusa' in name or 'orca' in name:
         return ['--center', center]
@@ -294,8 +303,9 @@ def present_z_for(printer, dims, override=None):
 
 def build_end_gcode_lines(printer, dims, present_z):
     park = printer.get('print_end', {})
-    park_x = float(park.get('park_x_mm', 10))
-    park_y = float(park.get('park_y_mm', printer.get('build_volume_mm', {}).get('y', 220)))
+    x_min, y_min, x_max, y_max = printable_xy_bounds(printer)
+    park_x = clamp(park.get('park_x_mm', x_min), x_min, x_max)
+    park_y = clamp(park.get('park_y_mm', y_max), y_min, y_max)
     return [
         '; AI END: 3d-print-inbox',
         'M400',
@@ -333,7 +343,10 @@ def run_slicer(model, gcode, scale, printer, filament, mode, supports, start_gco
     slicer = find_slicer()
     if not slicer: return dict(ok=False, ran=False, reason='No CLI slicer found')
     bed = printer['build_volume_mm']
-    cmd = [slicer, '--export-gcode', '--output', str(gcode), '--layer-height', str(mode['layer']), '--first-layer-height', str(mode['first_layer']), '--perimeters', str(mode['walls']), '--top-solid-layers', str(mode['top']), '--bottom-solid-layers', str(mode['bottom']), '--fill-density', str(mode['infill'])+'%', '--fill-pattern', mode['pattern'], '--temperature', str(filament['nozzle_c']), '--first-layer-temperature', str(filament['first_layer_nozzle_c']), '--bed-temperature', str(filament['bed_c']), '--first-layer-bed-temperature', str(filament['first_layer_bed_c']), '--filament-diameter', str(printer['filament']['diameter_mm']), '--nozzle-diameter', str(printer['nozzle']['diameter_mm']), '--brim-width', str(filament.get('brim_mm',0)), '--start-gcode', start_gcode, '--end-gcode', end_gcode] + slicer_center_args(slicer, bed) + ['--gcode-flavor', 'klipper']
+    origin = printer.get('bed_origin_mm', {'x': 0, 'y': 0})
+    ox, oy, x_max, y_max = printable_xy_bounds(printer)
+    bed_shape = '%gx%g,%gx%g,%gx%g,%gx%g' % (ox, oy, x_max, oy, x_max, y_max, ox, y_max)
+    cmd = [slicer, '--export-gcode', '--output', str(gcode), '--layer-height', str(mode['layer']), '--first-layer-height', str(mode['first_layer']), '--perimeters', str(mode['walls']), '--top-solid-layers', str(mode['top']), '--bottom-solid-layers', str(mode['bottom']), '--fill-density', str(mode['infill'])+'%', '--fill-pattern', mode['pattern'], '--temperature', str(filament['nozzle_c']), '--first-layer-temperature', str(filament['first_layer_nozzle_c']), '--bed-temperature', str(filament['bed_c']), '--first-layer-bed-temperature', str(filament['first_layer_bed_c']), '--filament-diameter', str(printer['filament']['diameter_mm']), '--nozzle-diameter', str(printer['nozzle']['diameter_mm']), '--brim-width', str(filament.get('brim_mm',0)), '--start-gcode', start_gcode, '--end-gcode', end_gcode] + slicer_center_args(slicer, bed, origin) + ['--gcode-flavor', 'klipper', '--bed-shape', bed_shape, '--max-print-height', str(bed['z'])]
     if abs(scale - 1.0) > 0.0001: cmd += ['--scale', '%g' % scale]
     if supports: cmd += ['--support-material', '--support-material-auto', '--support-material-threshold', str(mode['support_angle'])]
     cmd.append(str(model))

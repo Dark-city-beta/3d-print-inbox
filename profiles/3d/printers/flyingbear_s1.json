@@ -1,13 +1,13 @@
 {
   "id": "flyingbear_s1",
   "name": "Flying Bear S1",
-  "source": "Example Flying Bear S1 profile; verify against live Moonraker config before production printing",
+  "source": "Moonraker live config at 192.168.31.128, captured 2026-09-09",
   "ui": {
     "type": "Fluidd",
-    "url": "http://YOUR_PRINTER_IP/"
+    "url": "http://192.168.31.128/"
   },
   "moonraker": {
-    "url": "http://YOUR_PRINTER_IP:7125",
+    "url": "http://192.168.31.128:7125",
     "api_version": "1.4.0"
   },
   "mechanics": {
@@ -16,9 +16,18 @@
     "max_accel_mm_s2": 10000
   },
   "build_volume_mm": {
+    "x": 210,
+    "y": 210,
+    "z": 250
+  },
+  "build_volume_nominal_mm": {
     "x": 220,
     "y": 220,
     "z": 250
+  },
+  "bed_origin_mm": {
+    "x": 3,
+    "y": 3
   },
   "firmware_axis_mm": {
     "x_min": -5.5,
@@ -61,7 +70,7 @@
   "print_end": {
     "present_z_mm": 235,
     "park_x_mm": 10,
-    "park_y_mm": 220,
+    "park_y_mm": 213,
     "motors_off": "X Y E"
   },
   "conservative_limits": {
@@ -69,5 +78,14 @@
     "max_part_y_mm": 210,
     "max_part_z_mm": 245,
     "clearance_mm": 5
-  }
+  },
+  "printable_xy_mm": {
+    "x_min": 3,
+    "x_max": 213,
+    "y_min": 3,
+    "y_max": 213
+  },
+  "notes": [
+    "Printable/calibrated slicer area is X/Y 3..213 mm (210x210); nominal bed and firmware travel are not the safe printable area."
+  ]
 }
